@@ -1,64 +1,52 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const OpenAI = require('openai');
+const bodyParser = require('body-parser');
 const path = require('path');
-
-dotenv.config();
+const fetch = require('node-fetch');
 
 const app = express();
+const PORT = process.env.PORT || 4000;
+const API_KEY = process.env.DEEPSEEK_API_KEY;
+
 app.use(cors());
-app.use(express.json());
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const users = {};
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.post('/api/chat', async (req, res) => {
+  const { message } = req.body;
+
   try {
-    const userId = req.headers['x-user-id'];
-    if (!userId) return res.status(401).json({ error: 'No user ID' });
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: 'You are a helpful and empathetic mental health assistant.' },
+          { role: 'user', content: message },
+        ],
+      }),
+    });
 
-    if (!users[userId]) users[userId] = { credits: 3 };
+    const data = await response.json();
 
-    if (users[userId].credits <= 0) {
-      return res.status(402).json({ error: 'No credits left, please buy more' });
+    if (data.error) {
+      console.error('DeepSeek API error:', data.error);
+      return res.status(500).json({ error: data.error.message || 'API error' });
     }
 
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: 'No message' });
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: message }],
-    });
-
-    users[userId].credits--;
-
-    res.json({
-      reply: completion.choices[0].message.content,
-      credits: users[userId].credits,
-    });
+    const reply = data.choices?.[0]?.message?.content || 'No response.';
+    res.json({ reply });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'OpenAI API error' });
+    console.error('Server error:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.post('/api/pay', (req, res) => {
-  const { userId, amount } = req.body;
-  if (!userId || !amount) return res.status(400).json({ error: 'Missing parameters' });
-
-  if (!users[userId]) users[userId] = { credits: 0 };
-  users[userId].credits += amount;
-
-  res.json({ success: true, credits: users[userId].credits });
-});
-
-const PORT = process.env.PORT || 4000;
-app.use(express.static(path.join(__dirname, 'public')));
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
