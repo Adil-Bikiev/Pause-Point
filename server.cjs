@@ -1,52 +1,49 @@
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const fetch = require('node-fetch');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const API_KEY = process.env.DEEPSEEK_API_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
 app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
-
   try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message required' });
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_KEY}`,
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: 'You are a helpful and empathetic mental health assistant.' },
-          { role: 'user', content: message },
-        ],
+        model: 'deepseek/roberta-3b-chat',
+        messages: [{ role: 'user', content: message }],
+        temperature: 0.7,
+        max_tokens: 512,
       }),
     });
 
-    const data = await response.json();
-
-    if (data.error) {
-      console.error('DeepSeek API error:', data.error);
-      return res.status(500).json({ error: data.error.message || 'API error' });
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({ error: errorText });
     }
 
-    const reply = data.choices?.[0]?.message?.content || 'No response.';
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || "No response";
+
     res.json({ reply });
-  } catch (error) {
-    console.error('Server error:', error);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
