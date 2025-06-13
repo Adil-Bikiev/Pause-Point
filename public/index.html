@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pause Point</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 2rem; }
+    textarea { width: 100%; height: 100px; margin-top: 1rem; }
+    button { padding: 0.5rem 1rem; margin-top: 1rem; }
+    .response { margin-top: 2rem; background: #f0f0f0; padding: 1rem; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Pause Point</h1>
+  <p>Share your thoughts or problems anonymously.</p>
+
+  <textarea id="message" placeholder="What's on your mind?"></textarea>
+  <br />
+  <button onclick="sendMessage()">Send</button>
+
+  <div class="response" id="response"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

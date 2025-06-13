@@ -1,0 +1,17 @@
+# Системные файлы macOS
+.DS_Store
+
+# Конфиденциальные переменные окружения
+.env
+
+# Node.js зависимости
+node_modules/
+
+# Логи и временные файлы
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Идеи и конфиги редакторов
+.idea/
+.vscode/
